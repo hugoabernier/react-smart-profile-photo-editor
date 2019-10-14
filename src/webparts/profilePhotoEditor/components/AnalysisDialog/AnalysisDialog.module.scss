@@ -1,0 +1,35 @@
+@import '~office-ui-fabric-react/dist/sass/References.scss';
+
+.thumbnailImg {
+  width: 260px;
+  height: 260px;
+}
+
+.laser {
+  width: 150%;
+  margin-left: -25%;
+  background-color: rgb(0, 255, 0);
+  height: 1px;
+  position: absolute;
+  top: 120px;
+  z-index: 2;
+  box-shadow: 0 0 4px greenyellow;
+  animation: scanning 4s infinite;
+}
+
+.diode {
+  animation: beam .01s infinite;
+}
+
+
+@keyframes beam {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes scanning {
+  50% {
+    transform: translateY(260px);
+  }
+}
