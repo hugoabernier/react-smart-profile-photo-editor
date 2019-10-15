@@ -13,11 +13,10 @@ export interface IProfilePhotoEditorProps {
 }
 
 export interface IProfilePhotoEditorState {
-  file: any;
   errors: Array<any>;
-  cropper: boolean;
-  croppedImage: string;
   azureVisionKey: string;
   azureVisionEndpoint: string;
   hasConfiguration?: boolean;
+  showWebCamDialog: boolean;
+  imageUrl?: string;
 }

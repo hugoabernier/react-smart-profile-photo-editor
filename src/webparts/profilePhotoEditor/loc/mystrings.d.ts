@@ -1,4 +1,6 @@
 declare interface IProfilePhotoEditorWebPartStrings {
+  CaptureButtonLabel: string;
+  WebCamDialogTitle: string;
   NoKeywords: string;
   ForbiddenKeywordsLabel: string;
   ForbiddenTagsFieldDescription: string;

@@ -1,5 +1,7 @@
 define([], function() {
   return {
+    CaptureButtonLabel: "Capture",
+    WebCamDialogTitle: "Insert photo from camera",
     NoKeywords: "(none)",
     ForbiddenKeywordsLabel: "Forbidden keywords",
     ForbiddenTagsFieldDescription: "Enter a semi-colon separated list of tags that should not be allowed.",

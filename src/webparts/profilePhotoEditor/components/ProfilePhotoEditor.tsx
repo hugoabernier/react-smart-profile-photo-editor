@@ -25,6 +25,7 @@ import { StorageEntityService, IStorageEntityService, MockStorageEntityService }
 
 // Used to determine if we should be making real calls to APIs or just mock calls
 import { Environment, EnvironmentType } from '@microsoft/sp-core-library';
+import { WebCamDialog } from './WebCamDialog';
 
 const maxSize: string = '4mb';
 const acceptedFiles: string[] = ["image/jpg", "image/jpeg", "image/png"];
@@ -54,13 +55,11 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
     super(props);
 
     this.state = {
-      file: undefined,
-      croppedImage: undefined,
       errors: [],
-      cropper: false,
       azureVisionEndpoint: undefined,
       azureVisionKey: undefined,
-      hasConfiguration: undefined
+      hasConfiguration: undefined,
+      showWebCamDialog: false
     };
   }
 
@@ -137,7 +136,7 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
         >
           {({ browseFiles, getDropZoneProps }) => (
             <>
-              {this.state.file !== undefined ? (
+              {this.state.imageUrl !== undefined ? (
                 <div
                   {...getDropZoneProps({
                     className: styles.dropZone
@@ -146,7 +145,7 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
                     className={styles.cropper}
                     aspectRatio={1}
                     guides={true}
-                    src={this.state.file.src.base64}
+                    src={this.state.imageUrl}
                     ref={cropper => { this.cropper = cropper; }}
                   />
                   <div ref={(elm) => this.fileBrowser = elm}
@@ -172,7 +171,20 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
             </>
           )}
         </Files>
-
+        { this.state.showWebCamDialog &&
+        <WebCamDialog
+          onDismiss={() => {
+            this.setState({
+              showWebCamDialog: false
+            });
+          }}
+          onCapture={(imageUrl: string) => {
+            this.setState({
+              imageUrl,
+              showWebCamDialog: false
+            });
+          }}
+        />}
       </div>
     );
   }
@@ -181,7 +193,9 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
    * Gets called when a file has been successfully uploaded
    */
   private handleSuccess = (files: any) => {
-    this.setState({ file: files[0], errors: [] });
+    this.setState({
+      imageUrl: files[0].src.base64,
+      errors: [] });
   }
 
   /**
@@ -189,7 +203,9 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
    */
   private handleErrors = (errors: any) => {
     console.log("Handle errors", errors);
-    this.setState({ file: undefined, errors });
+    this.setState({
+      imageUrl: undefined,
+      errors });
   }
 
   /**
@@ -197,10 +213,8 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
    */
   private resetFiles = () => {
     this.setState({
-      file: undefined,
-      croppedImage: undefined,
-      errors: [],
-      cropper: false
+      imageUrl: undefined,
+      errors: []
     });
   }
 
@@ -225,9 +239,9 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
         iconProps: {
           iconName: 'Camera'
         },
-        disabled: true,
+        //disabled: true,
         title: strings.CameraButtonLabel,
-        onClick: () => console.log('Webcam')
+        onClick: () => this.getWebCamPhoto()
       },
       {
         key: 'Save',
@@ -235,8 +249,8 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
         iconProps: {
           iconName: 'Save'
         },
-        disabled: this.state.file === undefined,
-        title: this.state.file === undefined ? strings.SubmitPhotoDisabledTitle : strings.SubmitPhotoTitle,
+        disabled: this.state.imageUrl === undefined,
+        title: this.state.imageUrl === undefined ? strings.SubmitPhotoDisabledTitle : strings.SubmitPhotoTitle,
         onClick: () => this.submitPhoto()
       }
     ];
@@ -264,6 +278,12 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
         onClick: () => this.resetFiles()
       }
     ];
+  }
+
+  private getWebCamPhoto = () => {
+    this.setState({
+      showWebCamDialog: true
+    });
   }
 
   /**
