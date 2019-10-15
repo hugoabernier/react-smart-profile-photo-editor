@@ -18,11 +18,13 @@ import { MessageBar, MessageBarType } from 'office-ui-fabric-react';
 
 // Used for toolbar
 import { CommandBar } from 'office-ui-fabric-react/lib/CommandBar';
-import { AnalysisPanelDialog } from './AnalysisDialog';
+import { AnalysisPanelDialog, IPhotoRequirements } from './AnalysisDialog';
 
 // Used to retrieve storage key
-import { StorageEntityService } from '../../../services/StorageEntityService';
+import { StorageEntityService, IStorageEntityService, MockStorageEntityService } from '../../../services/StorageEntityService';
 
+// Used to determine if we should be making real calls to APIs or just mock calls
+import { Environment, EnvironmentType } from '@microsoft/sp-core-library';
 
 const maxSize: string = '4mb';
 const acceptedFiles: string[] = ["image/jpg", "image/jpeg", "image/png"];
@@ -63,12 +65,23 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
   }
 
   public async componentDidMount(): Promise<void> {
+    // If we haven't retrieved configuration information yet, do that
     if (this.state.hasConfiguration === undefined) {
-      const ses: StorageEntityService = new StorageEntityService(this.props.context);
-      const key: string = await ses.GetStorageEntity("azurekey");
-      const endpoint: string = await ses.GetStorageEntity("azureendpoint");
+      // Get an instance of the entity storage service
+      let storageService: IStorageEntityService = undefined;
+      if (Environment.type === EnvironmentType.Local || Environment.type === EnvironmentType.Test) {
+        //Running on Unit test environment or local workbench
+        storageService = new MockStorageEntityService(this.props.context);
+      } else if (Environment.type === EnvironmentType.SharePoint) {
+        //Modern SharePoint page
+        storageService = new StorageEntityService(this.props.context);
+      }
 
-      console.log("Key, Endpoint", key, endpoint);
+      // Retrieve the key and endpoint
+      const key: string = await storageService.GetStorageEntity("azurekey");
+      const endpoint: string = await storageService.GetStorageEntity("azureendpoint");
+
+      // Save results to the state so that we can display an error message if no key or endpoint
       this.setState({
         azureVisionEndpoint: endpoint,
         azureVisionKey: key,
@@ -137,10 +150,10 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
                     ref={cropper => { this.cropper = cropper; }}
                   />
                   <div ref={(elm) => this.fileBrowser = elm}
-                  onClick={browseFiles}
-                  {...getDropZoneProps({
-                    className: styles.hiddenDropZone
-                  })}
+                    onClick={browseFiles}
+                    {...getDropZoneProps({
+                      className: styles.hiddenDropZone
+                    })}
                   />
                 </div>
               ) : (
@@ -253,18 +266,26 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
     ];
   }
 
+  /**
+   * Calls the dialog to submit the photo
+   */
   private submitPhoto = () => {
+    // Get the image to approve
     const imageToApprove: string = this.cropper.getCroppedCanvas().toDataURL();
-    console.log("Image to approve", imageToApprove);
-    const callout: AnalysisPanelDialog = new AnalysisPanelDialog(imageToApprove, this.state.azureVisionKey, this.state.azureVisionEndpoint);
-        callout.show();
-  }
 
-  // private getStorageEntity = async (storageKey: string): Promise<string> =>  {
-  //   const { absoluteUrl } = this.props.context.pageContext.web;
-  //   const apiUrl: string = `${absoluteUrl}/_api/web/GetStorageEntity('${storageKey}')`;
-  //   const response: SPHttpClientResponse = await this.props.context.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
-  //   const json: any = await response.json();
-  //   return json.Value;
-  // }
+    const photoRequirements: IPhotoRequirements = {
+      allowAdult: this.props.allowAdult,
+      allowClipart: this.props.allowClipart,
+      allowGory: this.props.allowGory,
+      allowLinedrawing: this.props.allowLinedrawing,
+      requirePortrait: this.props.requirePortrait,
+      allowRacy: this.props.allowRacy,
+      forbiddenKeywords: this.props.forbiddenKeywords && this.props.forbiddenKeywords.replace('; ', ';').replace(' ;', ';').split(';')
+    };
+    // Create a new instance of the analysis dialog
+    const callout: AnalysisPanelDialog = new AnalysisPanelDialog(imageToApprove, this.state.azureVisionKey, this.state.azureVisionEndpoint, photoRequirements);
+
+    // Show the dialog
+    callout.show();
+  }
 }
