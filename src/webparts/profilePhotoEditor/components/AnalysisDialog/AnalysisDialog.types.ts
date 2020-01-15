@@ -1,4 +1,5 @@
 import { AnalyzeImageInStreamResponse } from '@azure/cognitiveservices-computervision/esm/models';
+import { WebPartContext } from '@microsoft/sp-webpart-base';
 
 export interface IPhotoRequirements {
   requirePortrait: boolean;
@@ -16,6 +17,13 @@ export interface IAnalysisDialogContentProps {
   azureKey: string;
   azureEndpoint: string;
   photoRequirements: IPhotoRequirements;
+
+  /**
+   * The web part context we'll need to call APIs
+   */
+  context: WebPartContext;
+
+  blob: Blob;
 
   /**
    * The DOM element to attach the dialog to

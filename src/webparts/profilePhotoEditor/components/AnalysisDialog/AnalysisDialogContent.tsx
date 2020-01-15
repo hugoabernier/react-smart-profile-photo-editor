@@ -24,6 +24,8 @@ import { IAnalysisService, AnalysisService, MockAnalysisService } from '../../..
 import { AnalyzeImageInStreamResponse, ImageTag } from '@azure/cognitiveservices-computervision/esm/models';
 import AnalysisChecklist from '../AnalysisChecklist/AnalysisChecklist';
 
+import { sp } from "@pnp/sp";
+import { SPHttpClient } from '@microsoft/sp-http';
 
 export class AnalysisDialogContent extends
   React.Component<IAnalysisDialogContentProps, IAnalysisDialogContentState> {
@@ -56,7 +58,6 @@ export class AnalysisDialogContent extends
       } else if (Environment.type === EnvironmentType.SharePoint) {
         //Modern SharePoint page
         service = new AnalysisService(azureKey, azureEndpoint);
-        //service = new MockAnalysisService(azureKey, azureEndpoint);
       }
 
       // Perform the analysis
@@ -198,7 +199,7 @@ export class AnalysisDialogContent extends
               <AnalysisChecklist title={strings.RacyLabel} value={analysis.adult.isRacyContent ? strings.YesLabel : strings.NoLabel} isValid={isRacyValid} />
               <AnalysisChecklist title={strings.AdultLabel} value={analysis.adult.isAdultContent ? strings.YesLabel : strings.NoLabel} isValid={isAdultValid} />
               <AnalysisChecklist title={strings.GoryLabel} value={analysis.adult.isGoryContent ? strings.YesLabel : strings.NoLabel} isValid={isGoryValid} />
-              <AnalysisChecklist title={strings.ForbiddenKeywordsLabel} value={ keywordsValid ? strings.NoKeywords : invalidKeywords.join(', ')} isValid={keywordsValid} />
+              <AnalysisChecklist title={strings.ForbiddenKeywordsLabel} value={keywordsValid ? strings.NoKeywords : invalidKeywords.join(', ')} isValid={keywordsValid} />
             </ul>
           </div>
         }
@@ -215,7 +216,7 @@ export class AnalysisDialogContent extends
   private onRenderFooterContent = (): JSX.Element => {
     return (
       <div>
-        <PrimaryButton onClick={(_ev) => this.onDismiss()} style={{ marginRight: '8px' }} disabled={this.state.isValid !== true}>
+        <PrimaryButton onClick={(_ev) => this.onUpdateProfilePhoto()} style={{ marginRight: '8px' }} disabled={this.state.isValid !== true}>
           {strings.UpdateButtonLabel}
         </PrimaryButton>
         <DefaultButton onClick={(_ev) => this.onDismiss()}>{strings.CancelButtonLabel}</DefaultButton>
@@ -223,7 +224,109 @@ export class AnalysisDialogContent extends
     );
   }
 
+  private onUpdateProfilePhoto = async (_ev?: React.SyntheticEvent<HTMLElement, Event>) => {
+    console.log("Submitting photo");
+    const profileBlob: Blob = this.props.blob;
+
+    await this.getValue();
+    await this.updateSingleUPValue();
+
+    // const imageAsArrayBuffer = this.dataURItoBlob(this.props.imageUrl);
+    // console.log("Image as array buffer", imageAsArrayBuffer);
+
+        // Get image array buffer
+        this.updateProfilePic(profileBlob);
+
+        sp.profiles.setMyProfilePic(profileBlob).then(() => {
+          console.log("All good");
+          this.props.onDismiss();
+          console.log("You are dismissed");
+        }, (error: any) => {
+          console.log("Oops, something went wrong", error);
+        });
+
+
+
+
+
+  }
+
+  private async getValue() {
+    console.log("Get value, getting API url", this.props.context);
+    let apiUrl = this.props.context.pageContext.web.absoluteUrl + "/_api/SP.UserProfiles.PeopleManager/GetUserProfilePropertyFor(accountName=@v, propertyName='AboutMe')?@v='" + encodeURIComponent("i:0#.f|membership|") + this.props.context.pageContext.user.loginName + "'";
+    console.log("Api URL", apiUrl);
+    let httpClient: SPHttpClient = this.props.context.spHttpClient;
+    await httpClient.get(apiUrl, SPHttpClient.configurations.v1).then(response => {
+      response.json().then(responseJson => {
+        console.log("Get value worked", responseJson);
+      });
+    }, (error: any) => {
+      console.log("Error calling get profile", error);
+    });
+  }
+
+  private async updateSingleUPValue() {
+    let apiUrl = this.props.context.pageContext.web.absoluteUrl + "/_api/SP.UserProfiles.PeopleManager/SetSingleValueProfileProperty";
+    let userData = {
+      'accountName': "i:0#.f|membership|" + this.props.context.pageContext.user.loginName,
+      'propertyName': 'AboutMe', //can also be used to set custom single value profile properties
+      'propertyValue': `About Me ${new Date()}`
+    };
+
+    let httpClient: SPHttpClient = this.props.context.spHttpClient;
+    let spOpts = {
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'Content-type': 'application/json;odata=verbose',
+        'odata-version': '',
+      },
+      body: JSON.stringify(userData),
+    };
+    await httpClient.post(apiUrl, SPHttpClient.configurations.v1, spOpts).then(response => {
+      console.log("Profile property Updated");
+    }, (error: any) => {
+      console.log("Error updating profile", error);
+    });
+  }
+
+  private async updateProfilePic(buffer) {
+    console.log("Update profile pic", buffer);
+
+    let apiUrl = this.props.context.pageContext.web.absoluteUrl + "/_api/SP.UserProfiles.PeopleManager/SetMyProfilePicture";
+
+    let httpClient: SPHttpClient = this.props.context.spHttpClient;
+    let spOpts = {
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'Content-type': 'application/json;odata=verbose',
+        'odata-version': '',
+        "content-length": buffer.byteLength
+      },
+      //data: buffer
+      binaryStringRequestBody: true,
+      body: buffer,
+    };
+    await httpClient.post(apiUrl, SPHttpClient.configurations.v1, spOpts).then(response => {
+      console.log("Profile Pic Updated", response);
+    }, (error: any) => {
+      console.log("Error updating profile picture", error);
+    });
+  }
+
+
   private onDismiss = (_ev?: React.SyntheticEvent<HTMLElement, Event>) => {
     this.props.onDismiss();
   }
+
+
+  private dataURLtoBlob = (dataurl: string): Blob => {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+      bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  }
+
+
 }

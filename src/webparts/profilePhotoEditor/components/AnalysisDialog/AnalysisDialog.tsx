@@ -4,6 +4,7 @@ import { BaseDialog, IDialogConfiguration } from '@microsoft/sp-dialog';
 
 import { IPhotoRequirements } from './AnalysisDialog.types';
 import { AnalysisDialogContent } from './AnalysisDialogContent';
+import { WebPartContext } from '@microsoft/sp-webpart-base';
 
 /**
  * Analysis Panel Dialog
@@ -13,16 +14,20 @@ export class AnalysisPanelDialog extends BaseDialog {
   private readonly azureKey: string = undefined;
   private readonly azureEndpoint: string = undefined;
   private readonly photoRequirements: IPhotoRequirements = undefined;
+  private readonly context: WebPartContext = undefined;
+  private readonly blob: Blob = undefined;
   /**
    *
    */
-  constructor(imageUrl: string, azureKey: string, azureEndpoint: string, photoRequirements: IPhotoRequirements) {
+  constructor(imageUrl: string, azureKey: string, azureEndpoint: string, photoRequirements: IPhotoRequirements, context: WebPartContext, blob: Blob) {
     super();
 
     this.imageUrl = imageUrl;
     this.azureEndpoint = azureEndpoint;
     this.azureKey = azureKey;
     this.photoRequirements = photoRequirements;
+    this.context = context;
+    this.blob = blob;
   }
 
   /**
@@ -45,6 +50,8 @@ export class AnalysisPanelDialog extends BaseDialog {
       azureEndpoint={this.azureEndpoint}
       azureKey={this.azureKey}
       photoRequirements={this.photoRequirements}
+      context={this.context}
+      blob={this.blob}
     />, this.domElement);
   }
 

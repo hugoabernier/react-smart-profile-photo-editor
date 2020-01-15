@@ -171,20 +171,20 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
             </>
           )}
         </Files>
-        { this.state.showWebCamDialog &&
-        <WebCamDialog
-          onDismiss={() => {
-            this.setState({
-              showWebCamDialog: false
-            });
-          }}
-          onCapture={(imageUrl: string) => {
-            this.setState({
-              imageUrl,
-              showWebCamDialog: false
-            });
-          }}
-        />}
+        {this.state.showWebCamDialog &&
+          <WebCamDialog
+            onDismiss={() => {
+              this.setState({
+                showWebCamDialog: false
+              });
+            }}
+            onCapture={(imageUrl: string) => {
+              this.setState({
+                imageUrl,
+                showWebCamDialog: false
+              });
+            }}
+          />}
       </div>
     );
   }
@@ -195,7 +195,8 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
   private handleSuccess = (files: any) => {
     this.setState({
       imageUrl: files[0].src.base64,
-      errors: [] });
+      errors: []
+    });
   }
 
   /**
@@ -205,7 +206,8 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
     console.log("Handle errors", errors);
     this.setState({
       imageUrl: undefined,
-      errors });
+      errors
+    });
   }
 
   /**
@@ -292,20 +294,26 @@ export default class ProfilePhotoEditor extends React.Component<IProfilePhotoEdi
   private submitPhoto = () => {
     // Get the image to approve
     const imageToApprove: string = this.cropper.getCroppedCanvas().toDataURL();
+    this.cropper.getCroppedCanvas().toBlob((blob: Blob)=> {
+      console.log("Blob", blob);
 
-    const photoRequirements: IPhotoRequirements = {
-      allowAdult: this.props.allowAdult,
-      allowClipart: this.props.allowClipart,
-      allowGory: this.props.allowGory,
-      allowLinedrawing: this.props.allowLinedrawing,
-      requirePortrait: this.props.requirePortrait,
-      allowRacy: this.props.allowRacy,
-      forbiddenKeywords: this.props.forbiddenKeywords && this.props.forbiddenKeywords.replace('; ', ';').replace(' ;', ';').split(';')
-    };
-    // Create a new instance of the analysis dialog
-    const callout: AnalysisPanelDialog = new AnalysisPanelDialog(imageToApprove, this.state.azureVisionKey, this.state.azureVisionEndpoint, photoRequirements);
+      const photoRequirements: IPhotoRequirements = {
+        allowAdult: this.props.allowAdult,
+        allowClipart: this.props.allowClipart,
+        allowGory: this.props.allowGory,
+        allowLinedrawing: this.props.allowLinedrawing,
+        requirePortrait: this.props.requirePortrait,
+        allowRacy: this.props.allowRacy,
+        forbiddenKeywords: this.props.forbiddenKeywords && this.props.forbiddenKeywords.replace('; ', ';').replace(' ;', ';').split(';')
+      };
+      // Create a new instance of the analysis dialog
+      const callout: AnalysisPanelDialog = new AnalysisPanelDialog(imageToApprove, this.state.azureVisionKey, this.state.azureVisionEndpoint, photoRequirements, this.props.context, blob);
 
-    // Show the dialog
-    callout.show();
+      // Show the dialog
+      callout.show();
+
+    });
+
+
   }
 }

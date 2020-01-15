@@ -1,7 +1,7 @@
 import { IAnalysisService } from ".";
 import { AnalyzeImageInStreamResponse } from '@azure/cognitiveservices-computervision/esm/models';
 
-const FAKE_DELAY: number = 9000;
+const FAKE_DELAY: number = 5000;
 
 const GOOD_REPONSE: any = {
   categories: [
